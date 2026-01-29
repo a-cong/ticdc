@@ -66,7 +66,6 @@ func Verify(ctx context.Context, changefeedID common.ChangeFeedID, cfg *config.C
 // New creates a new redo sink.
 // The router parameter is used for DDL query rewriting when sink routing is configured.
 func New(ctx context.Context, changefeedID common.ChangeFeedID,
-	startTs common.Ts,
 	cfg *config.ConsistentConfig,
 	router *sinkutil.Router,
 ) *Sink {
@@ -135,8 +134,9 @@ func (s *Sink) WriteBlockEvent(event commonEvent.BlockEvent) error {
 				return errors.Trace(err)
 			}
 		}
-		err := s.statistics.RecordDDLExecution(func() error {
-			return s.ddlWriter.WriteEvents(s.ctx, e)
+		err := s.statistics.RecordDDLExecution(func() (string, error) {
+			ddlType := e.GetDDLType().String()
+			return ddlType, s.ddlWriter.WriteEvents(s.ctx, e)
 		})
 		if err != nil {
 			s.isNormal.Store(false)
